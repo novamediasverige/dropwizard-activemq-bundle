@@ -144,7 +144,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     }
 
     @Override
-    public <T> ActiveMQReceiverHandler<T> createHandler(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz, boolean ackMessageOnException) {
+    public <T> ActiveMQReceiverHandler<T> createActiveMQReceiverHandler(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz, boolean ackMessageOnException) {
         return new ActiveMQReceiverHandler<>(
                 destination,
                 realConnectionFactory,
@@ -165,7 +165,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     }
 
     @Override
-    public <T> ActiveMQReceiverHandler<T> createHandler(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz, ActiveMQBaseExceptionHandler exceptionHandler) {
+    public <T> ActiveMQReceiverHandler<T> createActiveMQReceiverHandler(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz, ActiveMQBaseExceptionHandler exceptionHandler) {
         return new ActiveMQReceiverHandler<>(
                 destination,
                 realConnectionFactory,
