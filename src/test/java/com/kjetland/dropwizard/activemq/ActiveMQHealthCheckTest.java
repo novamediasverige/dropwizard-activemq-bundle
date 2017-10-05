@@ -25,6 +25,7 @@ public class ActiveMQHealthCheckTest {
     @After
     public void tearDown() throws Exception {
         broker.stop();
+        Thread.sleep(1500);
     }
 
     @Test
