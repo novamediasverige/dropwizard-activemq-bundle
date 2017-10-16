@@ -110,6 +110,18 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>external.atlassian.jgitflow</groupId>
+                <artifactId>jgitflow-maven-plugin</artifactId>
+                <version>1.0-m4.3</version>
+                <configuration>
+                    <noDeploy>true</noDeploy>
+                    <pushReleases>true</pushReleases>
+                    <keepBranch>false</keepBranch>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
