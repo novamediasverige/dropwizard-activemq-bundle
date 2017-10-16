@@ -134,8 +134,8 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     }
 
     // This must be used during run-phase
-    public <T> void registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
-                                     final boolean ackMessageOnException) {
+    public <T> ActiveMQReceiverHandler<T> registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
+                                                           final boolean ackMessageOnException) {
 
         ActiveMQReceiverHandler<T> handler = new ActiveMQReceiverHandler<>(
                 destination,
@@ -156,6 +156,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
         );
 
         internalRegisterReceiver(destination, handler);
+        return handler;
     }
 
     private <T> void internalRegisterReceiver(String destination, ActiveMQReceiverHandler<T> handler) {
@@ -164,8 +165,8 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     }
 
     // This must be used during run-phase
-    public <T> void registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
-                                     ActiveMQBaseExceptionHandler exceptionHandler) {
+    public <T> ActiveMQReceiverHandler<T> registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
+                                                           ActiveMQBaseExceptionHandler exceptionHandler) {
 
         ActiveMQReceiverHandler<T> handler = new ActiveMQReceiverHandler<>(
                 destination,
@@ -177,11 +178,12 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
                 shutdownWaitInSeconds);
 
         internalRegisterReceiver(destination, handler);
+        return handler;
     }
 
     // This must be used during run-phase
-    public <T> void registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
-                                     ActiveMQExceptionHandler exceptionHandler) {
-        registerReceiver(destination, receiver, clazz, (ActiveMQBaseExceptionHandler) exceptionHandler);
+    public <T> ActiveMQReceiverHandler<T> registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
+                                                           ActiveMQExceptionHandler exceptionHandler) {
+        return registerReceiver(destination, receiver, clazz, (ActiveMQBaseExceptionHandler) exceptionHandler);
     }
 }
