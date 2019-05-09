@@ -78,7 +78,7 @@ public class ActiveMQReceiverHandlerReliveryTest {
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
                 destinationName,
                 connectionFactory,
-                (m)->receiveMessage(m),
+                (m,i)->receiveMessage(m),
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),

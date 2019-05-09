@@ -25,6 +25,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     private long shutdownWaitInSeconds;
     private Optional<Integer> defaultTimeToLiveInSeconds;
     public static final ThreadLocal<String> correlationID = new ThreadLocal<>();
+    public static final String JMS_IDENTIFIER_PROPERTY = "identifier";
 
     public ActiveMQBundle() {
     }
@@ -159,7 +160,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
                     }
                 },
                 shutdownWaitInSeconds,
-            messageSelector
+                messageSelector
         );
 
         internalRegisterReceiver(destination, handler);

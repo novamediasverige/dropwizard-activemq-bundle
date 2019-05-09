@@ -42,7 +42,7 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
     int errorCount;
     int okCount;
 
-    private void receiveMessage(String message) {
+    private void receiveMessage(String message, String source) {
 
         if (message.equals("fail")) {
             errorCount++;

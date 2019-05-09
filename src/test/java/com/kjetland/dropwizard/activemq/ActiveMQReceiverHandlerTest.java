@@ -3,37 +3,32 @@ package com.kjetland.dropwizard.activemq;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.activemq.ActiveMQMessageConsumer;
 import org.eclipse.jetty.util.ConcurrentHashSet;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.internal.verification.VerificationModeFactory;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.mockito.verification.VerificationMode;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
-import javax.jms.Destination;
-import javax.jms.MessageConsumer;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -69,7 +64,7 @@ public class ActiveMQReceiverHandlerTest {
     int messageIndex = 0;
     List<String> messagesList;
 
-    Set<String> receivedMessages = new ConcurrentHashSet<>();
+    Map<String, String> receivedMessages = new ConcurrentHashMap<>();
     Set<Throwable> receivedExceptions = new ConcurrentHashSet<>();
 
 
@@ -88,11 +83,11 @@ public class ActiveMQReceiverHandlerTest {
         receivedExceptions.clear();
     }
 
-    private void receiveMessage(String m) {
+    private void receiveMessage(String m, String identifier) {
         if (THROW_EXCEPTION_IN_RECEIVER.equals(m)) {
             throw new RuntimeException(THROW_EXCEPTION_IN_RECEIVER);
         }
-        receivedMessages.add(m);
+        receivedMessages.put(m, identifier);
     }
 
     private TextMessage popMessage() throws Exception {
@@ -118,6 +113,7 @@ public class ActiveMQReceiverHandlerTest {
 
         TextMessage msg = mock(TextMessage.class);
         when(msg.getText()).thenReturn(m);
+        when(msg.getStringProperty(eq(ActiveMQBundle.JMS_IDENTIFIER_PROPERTY))).thenReturn(m + "-identifier");
         return msg;
     }
 
@@ -133,7 +129,7 @@ public class ActiveMQReceiverHandlerTest {
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
                 destinationName,
                 connectionFactory,
-                (m)->receiveMessage((String)m),
+                (m,i)->receiveMessage(m,i),
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),
@@ -144,9 +140,12 @@ public class ActiveMQReceiverHandlerTest {
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.times(1)).start();
         Thread.sleep(200);
-        assertTrue(receivedMessages.contains("a"));
-        assertTrue(receivedMessages.contains("b"));
-        assertTrue(receivedMessages.contains("d"));
+        assertTrue(receivedMessages.containsKey("a"));
+        assertTrue(receivedMessages.get("a").equals("a-identifier"));
+        assertTrue(receivedMessages.containsKey("b"));
+        assertTrue(receivedMessages.get("b").equals("b-identifier"));
+        assertTrue(receivedMessages.containsKey("d"));
+        assertTrue(receivedMessages.get("d").equals("d-identifier"));
         assertEquals(3, receivedMessages.size());
         assertTrue(receivedExceptions.size()==0);
         h.stop();
@@ -159,7 +158,7 @@ public class ActiveMQReceiverHandlerTest {
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
                 destinationName,
                 connectionFactory,
-                (m)->receiveMessage((String)m),
+                (m,i)->receiveMessage(m,i),
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),
@@ -170,9 +169,12 @@ public class ActiveMQReceiverHandlerTest {
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.times(1)).start();
         Thread.sleep(200);
-        assertTrue(receivedMessages.contains("a"));
-        assertTrue(receivedMessages.contains("b"));
-        assertTrue(receivedMessages.contains("d"));
+        assertTrue(receivedMessages.containsKey("a"));
+        assertTrue(receivedMessages.get("a").equals("a-identifier"));
+        assertTrue(receivedMessages.containsKey("b"));
+        assertTrue(receivedMessages.get("b").equals("b-identifier"));
+        assertTrue(receivedMessages.containsKey("d"));
+        assertTrue(receivedMessages.get("d").equals("d-identifier"));
         assertEquals(3, receivedMessages.size());
         assertTrue(receivedExceptions.size()>0);
         h.stop();
@@ -186,7 +188,7 @@ public class ActiveMQReceiverHandlerTest {
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
                 destinationName,
                 connectionFactory,
-                (m)->receiveMessage(m),
+                (m,i)->receiveMessage(m,i),
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),
@@ -197,9 +199,12 @@ public class ActiveMQReceiverHandlerTest {
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.atLeast(2)).start();
         Thread.sleep(200);
-        assertTrue(receivedMessages.contains("a"));
-        assertTrue(receivedMessages.contains("b"));
-        assertTrue(receivedMessages.contains("d"));
+        assertTrue(receivedMessages.containsKey("a"));
+        assertTrue(receivedMessages.get("a").equals("a-identifier"));
+        assertTrue(receivedMessages.containsKey("b"));
+        assertTrue(receivedMessages.get("b").equals("b-identifier"));
+        assertTrue(receivedMessages.containsKey("d"));
+        assertTrue(receivedMessages.get("d").equals("d-identifier"));
         assertEquals(3, receivedMessages.size());
         assertTrue(receivedExceptions.size()==0);
 
@@ -214,7 +219,7 @@ public class ActiveMQReceiverHandlerTest {
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
                 destinationName,
                 connectionFactory,
-                (m)->receiveMessage(m),
+                (m,i)->receiveMessage(m,i),
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m, e),
@@ -225,9 +230,12 @@ public class ActiveMQReceiverHandlerTest {
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.atLeast(2)).start();
         Thread.sleep(200);
-        assertTrue(receivedMessages.contains("a"));
-        assertTrue(receivedMessages.contains("b"));
-        assertTrue(receivedMessages.contains("d"));
+        assertTrue(receivedMessages.containsKey("a"));
+        assertTrue(receivedMessages.get("a").equals("a-identifier"));
+        assertTrue(receivedMessages.containsKey("b"));
+        assertTrue(receivedMessages.get("b").equals("b-identifier"));
+        assertTrue(receivedMessages.containsKey("d"));
+        assertTrue(receivedMessages.get("d").equals("d-identifier"));
         assertEquals(3, receivedMessages.size());
         assertTrue(receivedExceptions.size() == 0);
         h.stop();
