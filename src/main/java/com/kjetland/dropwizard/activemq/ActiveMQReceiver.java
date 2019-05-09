@@ -2,6 +2,5 @@ package com.kjetland.dropwizard.activemq;
 
 public interface ActiveMQReceiver<T> {
 
-     void receive(T message, String source);
-
+    void receive(T message, String source);
 }
