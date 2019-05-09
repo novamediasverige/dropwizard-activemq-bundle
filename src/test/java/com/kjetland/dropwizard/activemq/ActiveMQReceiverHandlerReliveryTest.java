@@ -82,7 +82,8 @@ public class ActiveMQReceiverHandlerReliveryTest {
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),
-                1);
+                1,
+                null);
 
         h.start();
 

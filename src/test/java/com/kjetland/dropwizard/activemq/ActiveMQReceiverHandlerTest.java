@@ -78,8 +78,8 @@ public class ActiveMQReceiverHandlerTest {
         when(connection.createSession(anyBoolean(), anyInt())).thenReturn(session);
         when(session.createQueue(anyString())).thenReturn(destinationQueue);
         when(session.createTopic(anyString())).thenReturn(destinationTopic);
-        when(session.createConsumer(eq(destinationQueue))).thenReturn(messageConsumer);
-        when(session.createConsumer(eq(destinationTopic))).thenReturn(messageConsumer);
+        when(session.createConsumer(eq(destinationQueue), eq(null))).thenReturn(messageConsumer);
+        when(session.createConsumer(eq(destinationTopic), eq(null))).thenReturn(messageConsumer);
 
         messageIndex = 0;
         messagesList = messages;
@@ -137,7 +137,8 @@ public class ActiveMQReceiverHandlerTest {
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),
-                1);
+                1,
+                null);
 
         h.start();
         Thread.sleep(100);
@@ -162,7 +163,8 @@ public class ActiveMQReceiverHandlerTest {
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),
-                1);
+                1,
+                null);
 
         h.start();
         Thread.sleep(100);
@@ -188,7 +190,8 @@ public class ActiveMQReceiverHandlerTest {
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m,e),
-                1);
+                1,
+                null);
 
         h.start();
         Thread.sleep(100);
@@ -215,7 +218,8 @@ public class ActiveMQReceiverHandlerTest {
                 String.class,
                 objectMapper,
                 (m,e) -> exceptionHandler(m, e),
-                1);
+                1,
+                null);
 
         h.start();
         Thread.sleep(100);

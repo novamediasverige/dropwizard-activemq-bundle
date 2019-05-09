@@ -136,6 +136,12 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     // This must be used during run-phase
     public <T> ActiveMQReceiverHandler<T> registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
                                                            final boolean ackMessageOnException) {
+        return registerReceiver(destination, receiver, clazz, ackMessageOnException, null);
+    }
+
+    // This must be used during run-phase
+    public <T> ActiveMQReceiverHandler<T> registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
+                                                           final boolean ackMessageOnException, String messageSelector) {
 
         ActiveMQReceiverHandler<T> handler = new ActiveMQReceiverHandler<>(
                 destination,
@@ -152,7 +158,8 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
                         return false;
                     }
                 },
-                shutdownWaitInSeconds
+                shutdownWaitInSeconds,
+            messageSelector
         );
 
         internalRegisterReceiver(destination, handler);
@@ -167,6 +174,12 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     // This must be used during run-phase
     public <T> ActiveMQReceiverHandler<T> registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
                                                            ActiveMQBaseExceptionHandler exceptionHandler) {
+        return registerReceiver(destination, receiver, clazz, exceptionHandler, null);
+    }
+
+    // This must be used during run-phase
+    public <T> ActiveMQReceiverHandler<T> registerReceiver(String destination, ActiveMQReceiver<T> receiver, Class<? extends T> clazz,
+                                                           ActiveMQBaseExceptionHandler exceptionHandler, String messageSelector) {
 
         ActiveMQReceiverHandler<T> handler = new ActiveMQReceiverHandler<>(
                 destination,
@@ -175,7 +188,8 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
                 clazz,
                 objectMapper,
                 exceptionHandler,
-                shutdownWaitInSeconds);
+                shutdownWaitInSeconds,
+                messageSelector);
 
         internalRegisterReceiver(destination, handler);
         return handler;

@@ -10,6 +10,7 @@ import org.apache.activemq.jms.pool.PooledMessageConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
@@ -52,6 +53,7 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
     private final ActiveMQBaseExceptionHandler exceptionHandler;
     protected final DestinationCreator destinationCreator = new DestinationCreatorImpl();
     protected final long shutdownWaitInSeconds;
+    private final String messageSelector;
     private final Collection<ReceiverFilter<T>> receiverFilters = new ArrayList<>();
 
     protected int errorsInARowCount = 0;
@@ -63,7 +65,8 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
             Class<? extends T> receiverType,
             ObjectMapper objectMapper,
             ActiveMQBaseExceptionHandler exceptionHandler,
-            long shutdownWaitInSeconds) {
+            long shutdownWaitInSeconds,
+            @Nullable String messageSelector) {
 
         this.destination = destination;
         this.connectionFactory = connectionFactory;
@@ -72,6 +75,7 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
         this.objectMapper = objectMapper;
         this.exceptionHandler = exceptionHandler;
         this.shutdownWaitInSeconds = shutdownWaitInSeconds;
+        this.messageSelector = messageSelector;
 
         this.thread = new Thread(this, "Receiver "+destination);
     }
@@ -83,8 +87,9 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
             Class<? extends T> receiverType,
             ObjectMapper objectMapper,
             ActiveMQExceptionHandler exceptionHandler,
-            long shutdownWaitInSeconds) {
-        this(destination, connectionFactory, receiver, receiverType, objectMapper, (ActiveMQBaseExceptionHandler) exceptionHandler, shutdownWaitInSeconds);
+            long shutdownWaitInSeconds,
+            @Nullable String messageSelector) {
+        this(destination, connectionFactory, receiver, receiverType, objectMapper, (ActiveMQBaseExceptionHandler) exceptionHandler, shutdownWaitInSeconds, messageSelector);
     }
 
     @Override
@@ -204,7 +209,7 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
                     try {
 
                         final Destination d = destinationCreator.create(session, destination);
-                        final MessageConsumer rawMessageConsumer = session.createConsumer(d);
+                        final MessageConsumer rawMessageConsumer = session.createConsumer(d, messageSelector);
                         final ActiveMQMessageConsumer messageConsumer = convertToActiveMQMessageConsumer(rawMessageConsumer);
                         try {
 
