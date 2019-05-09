@@ -42,14 +42,14 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
     int errorCount;
     int okCount;
 
-    private void receiveMessage(String message, String source) {
+    private void receiveMessage(String message, String identifier) {
 
         if (message.equals("fail")) {
             errorCount++;
             throw new RuntimeException("Error in receiveMessage");
         } else {
             okCount++;
-            System.out.println("receiveMessage: " + message);
+            System.out.println(String.format("receiveMessage: %s. identifier: ", message, identifier));
         }
     }
 

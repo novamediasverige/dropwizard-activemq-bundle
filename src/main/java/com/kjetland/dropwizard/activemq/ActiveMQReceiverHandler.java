@@ -122,7 +122,7 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
         // Save the context that the filters return in order to use them in the after call
         Map<ReceiverFilter<T>, T> contexts = new HashMap<>();
         try {
-            String source = message.getStringProperty(ActiveMQBundle.JMS_IDENTIFIER_PROPERTY);
+            String identifier = message.getStringProperty(ActiveMQBundle.JMS_IDENTIFIER_PROPERTY);
             receiverFilters.forEach(receiverFilter -> contexts.put(receiverFilter, receiverFilter.apply(message)));
             // keep track of the correlationID of the message in the scope of processMessage()
             // the ActiveMQSenderImpl can insert it if correlationID has not already been set
@@ -136,17 +136,17 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
 
                 if ( receiverType.equals(String.class)) {
                     // pass the string as is
-                    receiver.receive((T)json, source);
+                    receiver.receive((T)json, identifier);
                 } else {
                     T object = fromJson(json);
-                    receiver.receive(object, source);
+                    receiver.receive(object, identifier);
                 }
 
             } else if (message instanceof ActiveMQMapMessage) {
                 ActiveMQMapMessage m = (ActiveMQMapMessage)message;
                 if ( receiverType.equals(Map.class)) {
                     // pass the string as is
-                    receiver.receive((T)m.getContentMap(), source);
+                    receiver.receive((T)m.getContentMap(), identifier);
                 } else {
                     throw new Exception("We received a ActiveMQMapMessage-message, so you have to use receiverType = java.util.Map to receive it");
                 }
