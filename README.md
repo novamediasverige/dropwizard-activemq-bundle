@@ -11,6 +11,11 @@ Please have a look at the [Example application](https://github.com/mbknor/dropwi
 Change History
 --------------
 
+Version 0.5.3
+
+* Added support for message selectors
+* ActiveMQReceiver now receives an extra field. This field comes from the JMS property 'identifier' (JMS_IDENTIFIER_PROPERTY in ActiveMQBundle). To use this, set ActiveMQBundle.JMS_IDENTIFIER_PROPERTY as a string property when sending messages.
+
 Version 0.5.1
 
 * Fixing sporadic issue where "session is closed" when ack'ing received message
