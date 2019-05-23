@@ -2,6 +2,7 @@ package com.kjetland.dropwizard.activemq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.activemq.ActiveMQMessageConsumer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertEquals;
@@ -63,12 +65,12 @@ public class ActiveMQReceiverHandlerTest {
 
     int messageIndex = 0;
     List<String> messagesList;
+    Pair<String, Object> messageProperties;
 
-    Map<String, String> receivedMessages = new ConcurrentHashMap<>();
+    Map<String, Map<String, Object>> receivedMessages = new ConcurrentHashMap<>();
     Set<Throwable> receivedExceptions = new ConcurrentHashSet<>();
 
-
-    public void setUpMocks(List<String> messages) throws Exception {
+    public void setUpMocks(List<String> messages, Pair<String, Object> messageProperties) throws Exception {
         when(connectionFactory.createConnection()).thenReturn(connection);
         when(connection.createSession(anyBoolean(), anyInt())).thenReturn(session);
         when(session.createQueue(anyString())).thenReturn(destinationQueue);
@@ -78,42 +80,46 @@ public class ActiveMQReceiverHandlerTest {
 
         messageIndex = 0;
         messagesList = messages;
-        when(messageConsumer.receive(anyLong())).then( (i) -> popMessage());
+        this.messageProperties = messageProperties;
+        when(messageConsumer.receive(anyLong())).then((i) -> popMessage());
         receivedMessages.clear();
         receivedExceptions.clear();
     }
 
-    private void receiveMessage(String m, String identifier) {
+    private void receiveMessage(String m, Map<String, Object> messageProperties) {
         if (THROW_EXCEPTION_IN_RECEIVER.equals(m)) {
             throw new RuntimeException(THROW_EXCEPTION_IN_RECEIVER);
         }
-        receivedMessages.put(m, identifier);
+        receivedMessages.put(m, messageProperties);
     }
 
     private TextMessage popMessage() throws Exception {
 
         String m = messagesList.get(messageIndex);
         messageIndex++;
-        if ( messageIndex>= messagesList.size()) {
+        if (messageIndex >= messagesList.size()) {
             messageIndex = 0;
         }
 
-        if ( m == null) {
+        if (m == null) {
             return null;
         }
 
-        if ( THROW_EXCEPTION_IN_CONSUMER.equals(m)) {
+        if (THROW_EXCEPTION_IN_CONSUMER.equals(m)) {
             throw new RuntimeException(THROW_EXCEPTION_IN_CONSUMER);
         }
 
-        if ( THROW_EXCEPTION_IN_CONSUMER_CLOSED.equals(m)) {
+        if (THROW_EXCEPTION_IN_CONSUMER_CLOSED.equals(m)) {
             throw new javax.jms.IllegalStateException("The Consumer is closed");
         }
 
-
+        Vector<String> possibleProperties = new Vector();
+        possibleProperties.add("null_property");
+        possibleProperties.add(messageProperties.getKey());
         TextMessage msg = mock(TextMessage.class);
         when(msg.getText()).thenReturn(m);
-        when(msg.getStringProperty(eq(ActiveMQBundle.JMS_IDENTIFIER_PROPERTY))).thenReturn(m + "-identifier");
+        when(msg.getPropertyNames()).thenReturn(possibleProperties.elements());
+        when(msg.getObjectProperty(messageProperties.getKey())).thenReturn(messageProperties.getValue());
         return msg;
     }
 
@@ -125,88 +131,84 @@ public class ActiveMQReceiverHandlerTest {
 
     @Test
     public void testNormal() throws Exception {
-        setUpMocks(Arrays.asList(null, "a", "b", null, "d"));
+        setUpMocks(Arrays.asList(null, "a", "b", null, "d"), Pair.of(null, null));
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
-                destinationName,
-                connectionFactory,
-                (m,i)->receiveMessage(m,i),
-                String.class,
-                objectMapper,
-                (m,e) -> exceptionHandler(m,e),
-                1,
-                null);
+            destinationName,
+            connectionFactory,
+            (m, i) -> receiveMessage(m, i),
+            String.class,
+            objectMapper,
+            (m, e) -> exceptionHandler(m, e),
+            1,
+            null);
 
         h.start();
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.times(1)).start();
         Thread.sleep(200);
         assertTrue(receivedMessages.containsKey("a"));
-        assertTrue(receivedMessages.get("a").equals("a-identifier"));
         assertTrue(receivedMessages.containsKey("b"));
-        assertTrue(receivedMessages.get("b").equals("b-identifier"));
         assertTrue(receivedMessages.containsKey("d"));
-        assertTrue(receivedMessages.get("d").equals("d-identifier"));
         assertEquals(3, receivedMessages.size());
-        assertTrue(receivedExceptions.size()==0);
+        assertTrue(receivedExceptions.size() == 0);
+        assertTrue(receivedMessages.get("a").size() == 0);
+        assertTrue(receivedMessages.get("b").size() == 0);
+        assertTrue(receivedMessages.get("d").size() == 0);
         h.stop();
-
     }
 
     @Test
     public void testExceptionInReceiver() throws Exception {
-        setUpMocks(Arrays.asList(null, "a", THROW_EXCEPTION_IN_RECEIVER, "b", null, "d"));
+        setUpMocks(Arrays.asList(null, "a", THROW_EXCEPTION_IN_RECEIVER, "b", null, "d"), Pair.of("my-key", "my-value"));
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
-                destinationName,
-                connectionFactory,
-                (m,i)->receiveMessage(m,i),
-                String.class,
-                objectMapper,
-                (m,e) -> exceptionHandler(m,e),
-                1,
-                null);
+            destinationName,
+            connectionFactory,
+            (m, i) -> receiveMessage(m, i),
+            String.class,
+            objectMapper,
+            (m, e) -> exceptionHandler(m, e),
+            1,
+            null);
 
         h.start();
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.times(1)).start();
         Thread.sleep(200);
         assertTrue(receivedMessages.containsKey("a"));
-        assertTrue(receivedMessages.get("a").equals("a-identifier"));
         assertTrue(receivedMessages.containsKey("b"));
-        assertTrue(receivedMessages.get("b").equals("b-identifier"));
         assertTrue(receivedMessages.containsKey("d"));
-        assertTrue(receivedMessages.get("d").equals("d-identifier"));
+        assertTrue(receivedMessages.get("a").get("my-key").equals("my-value"));
+        assertTrue(receivedMessages.get("a").get("my-key").equals("my-value"));
         assertEquals(3, receivedMessages.size());
-        assertTrue(receivedExceptions.size()>0);
+        assertTrue(receivedExceptions.size() > 0);
         h.stop();
-
     }
 
     @Test
     public void testExceptionInMessageConsumer() throws Exception {
 
-        setUpMocks(Arrays.asList(null, "a", THROW_EXCEPTION_IN_CONSUMER, "b", null, "d"));
+        setUpMocks(Arrays.asList(null, "a", THROW_EXCEPTION_IN_CONSUMER, "b", null, "d"), Pair.of("key", "value"));
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
-                destinationName,
-                connectionFactory,
-                (m,i)->receiveMessage(m,i),
-                String.class,
-                objectMapper,
-                (m,e) -> exceptionHandler(m,e),
-                1,
-                null);
+            destinationName,
+            connectionFactory,
+            (m, i) -> receiveMessage(m, i),
+            String.class,
+            objectMapper,
+            (m, e) -> exceptionHandler(m, e),
+            1,
+            null);
 
         h.start();
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.atLeast(2)).start();
         Thread.sleep(200);
         assertTrue(receivedMessages.containsKey("a"));
-        assertTrue(receivedMessages.get("a").equals("a-identifier"));
         assertTrue(receivedMessages.containsKey("b"));
-        assertTrue(receivedMessages.get("b").equals("b-identifier"));
         assertTrue(receivedMessages.containsKey("d"));
-        assertTrue(receivedMessages.get("d").equals("d-identifier"));
+        assertTrue(receivedMessages.get("a").get("key").equals("value"));
+        assertTrue(receivedMessages.get("a").get("key").equals("value"));
         assertEquals(3, receivedMessages.size());
-        assertTrue(receivedExceptions.size()==0);
+        assertTrue(receivedExceptions.size() == 0);
 
         h.stop();
     }
@@ -215,27 +217,26 @@ public class ActiveMQReceiverHandlerTest {
     public void testExceptionInMessageConsumer_ConsumerIsClosed() throws Exception {
 
         setUpMocks(Arrays.asList(null, "a", THROW_EXCEPTION_IN_CONSUMER_CLOSED, "b", null, "d",
-                THROW_EXCEPTION_IN_CONSUMER_CLOSED, THROW_EXCEPTION_IN_CONSUMER_CLOSED));
+            THROW_EXCEPTION_IN_CONSUMER_CLOSED, THROW_EXCEPTION_IN_CONSUMER_CLOSED), Pair.of("key", "value"));
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
-                destinationName,
-                connectionFactory,
-                (m,i)->receiveMessage(m,i),
-                String.class,
-                objectMapper,
-                (m,e) -> exceptionHandler(m, e),
-                1,
-                null);
+            destinationName,
+            connectionFactory,
+            (m, i) -> receiveMessage(m, i),
+            String.class,
+            objectMapper,
+            (m, e) -> exceptionHandler(m, e),
+            1,
+            null);
 
         h.start();
         Thread.sleep(100);
         verify(connection, VerificationModeFactory.atLeast(2)).start();
         Thread.sleep(200);
         assertTrue(receivedMessages.containsKey("a"));
-        assertTrue(receivedMessages.get("a").equals("a-identifier"));
         assertTrue(receivedMessages.containsKey("b"));
-        assertTrue(receivedMessages.get("b").equals("b-identifier"));
         assertTrue(receivedMessages.containsKey("d"));
-        assertTrue(receivedMessages.get("d").equals("d-identifier"));
+        assertTrue(receivedMessages.get("a").get("key").equals("value"));
+        assertTrue(receivedMessages.get("a").get("key").equals("value"));
         assertEquals(3, receivedMessages.size());
         assertTrue(receivedExceptions.size() == 0);
         h.stop();

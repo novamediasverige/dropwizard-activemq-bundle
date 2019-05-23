@@ -2,6 +2,7 @@ package com.kjetland.dropwizard.activemq;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.kjetland.dropwizard.activemq.errors.JsonError;
 import io.dropwizard.lifecycle.Managed;
 import org.apache.activemq.ActiveMQMessageConsumer;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -122,7 +124,16 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
         // Save the context that the filters return in order to use them in the after call
         Map<ReceiverFilter<T>, T> contexts = new HashMap<>();
         try {
-            String identifier = message.getStringProperty(ActiveMQBundle.JMS_IDENTIFIER_PROPERTY);
+            ImmutableMap.Builder<String, Object> messagePropertiesBuilder = ImmutableMap.builder();
+            Enumeration propertyNames = message.getPropertyNames();
+            while (propertyNames.hasMoreElements()) {
+                String propertyName = (String) propertyNames.nextElement();
+                Object value = message.getObjectProperty(propertyName);
+                if (value != null) {
+                    messagePropertiesBuilder.put(propertyName, value);
+                }
+            }
+            ImmutableMap<String, Object> messageProperties = messagePropertiesBuilder.build();
             receiverFilters.forEach(receiverFilter -> contexts.put(receiverFilter, receiverFilter.apply(message)));
             // keep track of the correlationID of the message in the scope of processMessage()
             // the ActiveMQSenderImpl can insert it if correlationID has not already been set
@@ -136,17 +147,17 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
 
                 if ( receiverType.equals(String.class)) {
                     // pass the string as is
-                    receiver.receive((T)json, identifier);
+                    receiver.receive((T)json, messageProperties);
                 } else {
                     T object = fromJson(json);
-                    receiver.receive(object, identifier);
+                    receiver.receive(object, messageProperties);
                 }
 
             } else if (message instanceof ActiveMQMapMessage) {
                 ActiveMQMapMessage m = (ActiveMQMapMessage)message;
                 if ( receiverType.equals(Map.class)) {
                     // pass the string as is
-                    receiver.receive((T)m.getContentMap(), identifier);
+                    receiver.receive((T)m.getContentMap(), messageProperties);
                 } else {
                     throw new Exception("We received a ActiveMQMapMessage-message, so you have to use receiverType = java.util.Map to receive it");
                 }

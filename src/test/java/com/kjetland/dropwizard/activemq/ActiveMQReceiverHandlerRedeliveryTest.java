@@ -8,6 +8,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
@@ -42,14 +43,14 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
     int errorCount;
     int okCount;
 
-    private void receiveMessage(String message, String identifier) {
+    private void receiveMessage(String message, Map<String, Object> messageProperties) {
 
         if (message.equals("fail")) {
             errorCount++;
             throw new RuntimeException("Error in receiveMessage");
         } else {
             okCount++;
-            System.out.println(String.format("receiveMessage: %s. identifier: ", message, identifier));
+            System.out.println(String.format("receiveMessage: %s. messageProperties: ", message, messageProperties));
         }
     }
 

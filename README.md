@@ -14,7 +14,7 @@ Change History
 Version 0.5.3
 
 * Added support for message selectors
-* ActiveMQReceiver now receives an extra field. This field comes from the JMS property 'identifier' (JMS_IDENTIFIER_PROPERTY in ActiveMQBundle). To use this, set ActiveMQBundle.JMS_IDENTIFIER_PROPERTY as a string property when sending messages.
+* ActiveMQReceiver now receives all message properties in a Map<String, Object>. 
 
 Version 0.5.1
 
