@@ -70,7 +70,6 @@ public class ActiveMQSenderImpl implements ActiveMQSender {
             if (textMessage.getJMSCorrelationID() == null && correlationId != null) {
                 textMessage.setJMSCorrelationID(correlationId);
             }
-            senderFilters.forEach(senderFilter -> senderFilter.apply(textMessage));
             return textMessage;
         });
     }
@@ -96,6 +95,7 @@ public class ActiveMQSenderImpl implements ActiveMQSender {
                     }
 
                     final Message message = messageCreator.apply(session);
+                    senderFilters.forEach(senderFilter -> senderFilter.apply(message));
                     messageProducer.send(message);
                 } finally {
                     ActiveMQUtils.silent(() -> messageProducer.close());

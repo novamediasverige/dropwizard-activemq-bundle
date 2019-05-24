@@ -18,6 +18,7 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -54,7 +55,7 @@ public class ActiveMQSenderImplTest {
         final String queueName = "myQueue";
         final String myJson = "{'a': 2, 'b': 'Some text'}";
         final String myCorrelationId = UUID.randomUUID().toString();
-        final ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, queueName, Optional.<Integer>empty(), false);
+        final ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, queueName, Optional.empty(), false);
 
         when(session.createQueue(queueName)).thenReturn(queue);
         when(session.createProducer(queue)).thenReturn(messageProducer);
@@ -68,19 +69,6 @@ public class ActiveMQSenderImplTest {
             message.setJMSReplyTo(queue);
             return message;
         });
-/*
-        sender.send((Session session) -> {
-            try {
-                TextMessage message = session.createTextMessage();
-                message.setText(myJson);
-                message.setJMSCorrelationID(myCorrelationId);
-                message.setJMSReplyTo(queue);
-                return message;
-            } catch (JMSException e) {
-                throw new RuntimeException(e);
-            }
-        });
-*/
 
         // Verify that the message was constructed as intended
         verify(textMessage).setText(myJson);
@@ -96,13 +84,12 @@ public class ActiveMQSenderImplTest {
         verifyNoMoreInteractions(textMessage, messageProducer);
     }
 
-
     @Test
     public void testSendSimpleQueueWithCreatorFunctionWhenExceptionIsThrown() throws Exception {
         final String queueName = "myQueue";
         final String myJson = "{'a': 2, 'b': 'Some text'}";
         final String myCorrelationId = UUID.randomUUID().toString();
-        final ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, queueName, Optional.<Integer>empty(), false);
+        final ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, queueName, Optional.empty(), false);
         final JMSException thrownException = new JMSException("Test");
 
         when(session.createQueue(queueName)).thenReturn(queue);
@@ -118,19 +105,6 @@ public class ActiveMQSenderImplTest {
                 message.setJMSCorrelationID(myCorrelationId);
                 return message;
             });
-            /*
-            sender.send((Session session) -> {
-                try {
-                    TextMessage message = session.createTextMessage();
-                    message.setText(myJson);
-                    message.setJMSCorrelationID(myCorrelationId);
-                    message.setJMSReplyTo(queue);
-                    return message;
-                } catch (JMSException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-            */
             // We should not arrive here
             fail("Expected JMSException was not thrown");
         } catch (RuntimeException re) {
@@ -145,12 +119,43 @@ public class ActiveMQSenderImplTest {
     }
 
     @Test
-    public void testSendJson() throws Exception {
-
+    public void testFiltersAreAppliedSendFunction() throws JMSException {
+        doTestSenderFilters((sender) -> sender.send((Session session) -> {
+            TextMessage message = session.createTextMessage();
+            message.setText("jmsfunction");
+            return message;
+        }));
     }
 
     @Test
-    public void testSend1() throws Exception {
+    public void testFiltersAreAppliedSendJson() throws JMSException {
+        doTestSenderFilters((sender) -> sender.sendJson("{\"key\": \"value\"}"));
+    }
 
+    @Test
+    public void testFiltersAreAppliedSendObject() throws JMSException {
+        doTestSenderFilters((sender) -> sender.send("object"));
+    }
+
+    private void doTestSenderFilters(Consumer<ActiveMQSender> senderConsumer) throws JMSException {
+        final String queueName = "myQueue";
+        final ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, queueName, Optional.empty(), false);
+
+        when(session.createQueue(queueName)).thenReturn(queue);
+        when(session.createProducer(queue)).thenReturn(messageProducer);
+        when(session.createTextMessage(any())).thenReturn(textMessage);
+        when(session.createTextMessage()).thenReturn(textMessage);
+
+        sender.addFilter(m -> {
+            try {
+                m.setStringProperty("property-from-filter", "apply-me");
+            } catch (JMSException e) {
+                fail(e.getMessage());
+            }
+        });
+
+        senderConsumer.accept(sender);
+
+        verify(textMessage, times(1)).setStringProperty("property-from-filter", "apply-me");
     }
 }
