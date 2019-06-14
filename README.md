@@ -11,6 +11,11 @@ Please have a look at the [Example application](https://github.com/mbknor/dropwi
 Change History
 --------------
 
+Version 0.5.3
+
+* Added support for message selectors
+* ActiveMQReceiver now receives all message properties in a Map<String, Object>. 
+
 Version 0.5.1
 
 * Fixing sporadic issue where "session is closed" when ack'ing received message
