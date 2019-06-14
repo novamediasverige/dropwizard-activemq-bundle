@@ -8,7 +8,7 @@
     </parent>
     <groupId>com.kjetland.dropwizard</groupId>
     <artifactId>dropwizard-activemq</artifactId>
-    <version>0.5.2-NOVAMEDIA</version>
+    <version>0.5.3-NOVAMEDIA</version>
 
     <name>dropwizard-activemq</name>
     <url>https://github.com/mbknor/dropwizard-activemq-bundle</url>
@@ -121,6 +121,13 @@
                     <keepBranch>false</keepBranch>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.jcraft</groupId>
+                        <artifactId>jsch</artifactId>
+                        <version>0.1.54</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

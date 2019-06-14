@@ -3,23 +3,30 @@ package com.kjetland.dropwizard.activemq;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.command.ActiveMQDestination;
 import org.apache.activemq.jms.pool.PooledConnectionFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jms.TextMessage;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 
-public class ActiveMQReceiverHandlerRedeliveryTest {
+public class ActiveMQReceiverHandlerSelectorTest {
 
     final String url = "tcp://localhost:31219?" +
         "jms.redeliveryPolicy.maximumRedeliveries=3" +
         "&jms.redeliveryPolicy.initialRedeliveryDelay=100" +
         "&jms.redeliveryPolicy.redeliveryDelay=100";
 
+    final String DESTINATION = "somewherenothere";
+    final String DESTINATION_QUEUE = "queue:" + DESTINATION;
+
+    int receivedCount;
+    int errorCount;
     BrokerService broker;
 
     @Before
@@ -30,7 +37,7 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
         broker.start();
 
         errorCount = 0;
-        okCount = 0;
+        receivedCount = 0;
     }
 
     @After
@@ -40,36 +47,17 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
         Thread.sleep(1500);
     }
 
-    int errorCount;
-    int okCount;
-
     private void receiveMessage(String message, Map<String, Object> messageProperties) {
-
-        if (message.equals("fail")) {
-            errorCount++;
-            throw new RuntimeException("Error in receiveMessage");
-        } else {
-            okCount++;
-            System.out.println(String.format("receiveMessage: %s. messageProperties: ", message, messageProperties));
-        }
+        receivedCount++;
     }
 
     public boolean exceptionHandler(String message, Exception exception) {
-        System.out.println("exceptionHandler: " + message + " - " + exception.getMessage());
+        errorCount++;
         return false;
     }
 
     @Test
-    public void testRedeliveryQueue() throws Exception {
-        doTestRedelivery("queue:someQueue");
-    }
-
-    @Test
-    public void testRedeliveryTopic() throws Exception {
-        doTestRedelivery("topic:someTopic");
-    }
-
-    private void doTestRedelivery(String destinationName) throws Exception {
+    public void testMessageSelector() throws Exception {
         ActiveMQConnectionFactory realConnectionFactory = new ActiveMQConnectionFactory(url);
         PooledConnectionFactory connectionFactory = new PooledConnectionFactory();
         connectionFactory.setConnectionFactory(realConnectionFactory);
@@ -77,26 +65,38 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
         ObjectMapper objectMapper = new ObjectMapper();
 
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
-            destinationName,
+            DESTINATION_QUEUE,
             connectionFactory,
             this::receiveMessage,
             String.class,
             objectMapper,
             this::exceptionHandler,
             1,
-            null);
+            "destination = 'server-a'");
 
         h.start();
 
-        ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, destinationName, Optional.<Integer>empty(), false);
+        ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, DESTINATION_QUEUE, Optional.empty(), false);
 
-        sender.sendJson("fail");
-        sender.sendJson("ok1");
-        sender.sendJson("ok2");
+        sender.send(session -> {
+            TextMessage textMessage = session.createTextMessage();
+            textMessage.setText("Consume me!");
+            textMessage.setStringProperty("destination", "server-a");
+            return textMessage;
+        });
+
+        sender.send(session -> {
+            TextMessage textMessage = session.createTextMessage();
+            textMessage.setText("But not me...");
+            textMessage.setStringProperty("destination", "server-b");
+            return textMessage;
+        });
 
         Thread.sleep(1000);
 
-        assertEquals(3 + 1, errorCount);
-        assertEquals(2, okCount);
+        assertEquals(receivedCount, 1);
+        assertEquals(errorCount, 0);
+        //Check to see that the broker has 1 message waiting
+        assertEquals(broker.getDestination(ActiveMQDestination.createDestination(DESTINATION, (byte) 0x01)).browse().length, 1);
     }
 }
