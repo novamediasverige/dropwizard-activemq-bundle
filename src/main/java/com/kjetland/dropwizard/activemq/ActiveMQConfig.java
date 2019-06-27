@@ -21,6 +21,9 @@ public class ActiveMQConfig {
     public long healthCheckMillisecondsToWait = 2000; // 2 seconds
 
     @JsonProperty
+    public boolean healthcheckRequired = true; //can be turned off by application using bundle
+
+    @JsonProperty
     public int shutdownWaitInSeconds = 20;
 
     @JsonProperty
