@@ -24,6 +24,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     private Environment environment;
     private long shutdownWaitInSeconds;
     private Optional<Integer> defaultTimeToLiveInSeconds;
+    private boolean healthcheckDisabled = false;
     public static final ThreadLocal<String> correlationID = new ThreadLocal<>();
 
     public ActiveMQBundle() {
@@ -63,12 +64,12 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
         objectMapper = environment.getObjectMapper();
 
         environment.lifecycle().manage(this);
-        registerHealCheckIfRequired(activeMQConfig, environment);
+        registerHealthCheckIfRequired(activeMQConfig, environment);
 
         this.shutdownWaitInSeconds = activeMQConfig.shutdownWaitInSeconds;
     }
 
-    private void registerHealCheckIfRequired(ActiveMQConfig activeMQConfig, Environment environment) {
+    private void registerHealthCheckIfRequired(ActiveMQConfig activeMQConfig, Environment environment) {
         if (activeMQConfig.healthcheckRequired) {
             // Must use realConnectionFactory instead of (pooled) connectionFactory for the healthCheck
             // Is needs its own connection since it is both sending and receiving.
@@ -76,6 +77,9 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
             environment.healthChecks().register(healthCheckName,
                 new ActiveMQHealthCheck(realConnectionFactory, activeMQConfig.healthCheckMillisecondsToWait)
             );
+        } else {
+            healthcheckDisabled = true;
+            log.info("ActiveMQ healthcheck is disabled for the service");
         }
     }
 
@@ -111,7 +115,6 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
         if (poolConfig.timeBetweenExpirationCheckMillis != null) {
             connectionFactory.setTimeBetweenExpirationCheckMillis(poolConfig.timeBetweenExpirationCheckMillis);
         }
-
     }
 
     @Override
@@ -150,22 +153,22 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
                                                            final boolean ackMessageOnException, String messageSelector) {
 
         ActiveMQReceiverHandler<T> handler = new ActiveMQReceiverHandler<>(
-                destination,
-                realConnectionFactory,
-                receiver,
-                clazz,
-                objectMapper,
-                (message, exception) -> {
-                    if (ackMessageOnException) {
-                        log.error("Error processing received message - acknowledging it anyway", exception);
-                        return true;
-                    } else {
-                        log.error("Error processing received message - NOT acknowledging it", exception);
-                        return false;
-                    }
-                },
-                shutdownWaitInSeconds,
-                messageSelector
+            destination,
+            realConnectionFactory,
+            receiver,
+            clazz,
+            objectMapper,
+            (message, exception) -> {
+                if (ackMessageOnException) {
+                    log.error("Error processing received message - acknowledging it anyway", exception);
+                    return true;
+                } else {
+                    log.error("Error processing received message - NOT acknowledging it", exception);
+                    return false;
+                }
+            },
+            shutdownWaitInSeconds,
+            messageSelector
         );
 
         internalRegisterReceiver(destination, handler);
@@ -174,7 +177,9 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
 
     private <T> void internalRegisterReceiver(String destination, ActiveMQReceiverHandler<T> handler) {
         environment.lifecycle().manage(handler);
-        environment.healthChecks().register("ActiveMQ receiver for " + destination, handler.getHealthCheck());
+        if (!healthcheckDisabled) {
+            environment.healthChecks().register("ActiveMQ receiver for " + destination, handler.getHealthCheck());
+        }
     }
 
     // This must be used during run-phase
@@ -188,14 +193,14 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
                                                            ActiveMQBaseExceptionHandler exceptionHandler, String messageSelector) {
 
         ActiveMQReceiverHandler<T> handler = new ActiveMQReceiverHandler<>(
-                destination,
-                realConnectionFactory,
-                receiver,
-                clazz,
-                objectMapper,
-                exceptionHandler,
-                shutdownWaitInSeconds,
-                messageSelector);
+            destination,
+            realConnectionFactory,
+            receiver,
+            clazz,
+            objectMapper,
+            exceptionHandler,
+            shutdownWaitInSeconds,
+            messageSelector);
 
         internalRegisterReceiver(destination, handler);
         return handler;
