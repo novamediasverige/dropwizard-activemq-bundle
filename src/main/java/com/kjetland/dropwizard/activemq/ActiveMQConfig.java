@@ -12,6 +12,9 @@ public class ActiveMQConfig {
     public String brokerUrl;
 
     @JsonProperty
+    public String healthCheckAppendToBrokerUrl;
+
+    @JsonProperty
     public String brokerUsername;
 
     @JsonProperty
@@ -21,7 +24,7 @@ public class ActiveMQConfig {
     public long healthCheckMillisecondsToWait = 2000; // 2 seconds
 
     @JsonProperty
-    public boolean healthcheckRequired = true; //can be turned off by application using bundle
+    public boolean healthCheckRequired = true; //can be turned off by application using bundle
 
     @JsonProperty
     public int shutdownWaitInSeconds = 20;
@@ -37,7 +40,9 @@ public class ActiveMQConfig {
     public String toString() {
         return "ActiveMQConfig{" +
                 "brokerUrl='" + brokerUrl + '\'' +
+                ", healthCheckAppendToBrokerUrl=" + healthCheckAppendToBrokerUrl +
                 ", healthCheckMillisecondsToWait=" + healthCheckMillisecondsToWait +
+                ", healthCheckRequired=" + healthCheckRequired +
                 ", shutdownWaitInSeconds=" + shutdownWaitInSeconds +
                 ", timeToLiveInSeconds=" + timeToLiveInSeconds +
                 ", brokerUsername=" + brokerUsername +

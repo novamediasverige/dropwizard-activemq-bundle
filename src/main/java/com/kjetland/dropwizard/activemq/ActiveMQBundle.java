@@ -43,19 +43,13 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
         this.environment = environment;
         final String brokerUrl = activeMQConfig.brokerUrl;
         final int configuredTTL = activeMQConfig.timeToLiveInSeconds;
-        final Optional<String> username = Optional.ofNullable(activeMQConfig.brokerUsername);
-        final Optional<String> password = Optional.ofNullable(activeMQConfig.brokerPassword);
         defaultTimeToLiveInSeconds = Optional.ofNullable(configuredTTL > 0 ? configuredTTL : null);
 
         log.info("Setting up activeMq with brokerUrl {}", brokerUrl);
 
         log.debug("All activeMQ config: " + activeMQConfig);
 
-        realConnectionFactory = new ActiveMQConnectionFactory(brokerUrl);
-        if (username.isPresent() && password.isPresent()) {
-            realConnectionFactory.setUserName(username.get());
-            realConnectionFactory.setPassword(password.get());
-        }
+        realConnectionFactory = getActiveMQConnectionFactory(brokerUrl, activeMQConfig.brokerUsername, activeMQConfig.brokerPassword);
         connectionFactory = new PooledConnectionFactory();
         connectionFactory.setConnectionFactory(realConnectionFactory);
 
@@ -69,13 +63,26 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
         this.shutdownWaitInSeconds = activeMQConfig.shutdownWaitInSeconds;
     }
 
+    private ActiveMQConnectionFactory getActiveMQConnectionFactory(String brokerUrl, String username, String password) {
+        ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory(brokerUrl);
+        if (username!=null && password!=null) {
+            activeMQConnectionFactory.setUserName(username);
+            activeMQConnectionFactory.setPassword(password);
+        }
+        return activeMQConnectionFactory;
+    }
+
     private void registerHealthCheckIfRequired(ActiveMQConfig activeMQConfig, Environment environment) {
-        if (activeMQConfig.healthcheckRequired) {
-            // Must use realConnectionFactory instead of (pooled) connectionFactory for the healthCheck
-            // Is needs its own connection since it is both sending and receiving.
-            // If using pool, then it might block since no one is available..
+
+        if (activeMQConfig.healthCheckRequired) {
+            String healthCheckBrokerUrl = activeMQConfig.healthCheckAppendToBrokerUrl != null
+                ? activeMQConfig.brokerUrl + activeMQConfig.healthCheckAppendToBrokerUrl
+                : activeMQConfig.brokerUrl;
+            ActiveMQConnectionFactory healthCheckActiveMQConnectionFactory = getActiveMQConnectionFactory(healthCheckBrokerUrl, activeMQConfig.brokerUsername, activeMQConfig.brokerPassword);
+            // Must use independent connectionFactory instead of (pooled) connectionFactory for the healthCheck
+            // If using pool, then it might be blocked when pool is short on idle threads and no connection is available..
             environment.healthChecks().register(healthCheckName,
-                new ActiveMQHealthCheck(realConnectionFactory, activeMQConfig.healthCheckMillisecondsToWait)
+                new ActiveMQHealthCheck(healthCheckActiveMQConnectionFactory, activeMQConfig.healthCheckMillisecondsToWait)
             );
         } else {
             healthcheckDisabled = true;
