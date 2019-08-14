@@ -12,9 +12,10 @@ public class ActiveMQConfig {
     public String brokerUrl;
 
     /**
-     * Ex. &startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down).
-     *       ? or & depends on whether brokerUrl already included options
-     *
+     * {@literal
+     *  Ex. &startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down).
+     *  ? or & depends on whether brokerUrl already included options
+     * }
      */
     @JsonProperty
     public String healthCheckAppendToBrokerUrl;
@@ -47,15 +48,15 @@ public class ActiveMQConfig {
     @Override
     public String toString() {
         return "ActiveMQConfig{" +
-                "brokerUrl='" + brokerUrl + '\'' +
-                ", healthCheckAppendToBrokerUrl=" + healthCheckAppendToBrokerUrl +
-                ", healthCheckMillisecondsToWait=" + healthCheckMillisecondsToWait +
-                ", healthCheckRequired=" + healthCheckRequired +
-                ", shutdownWaitInSeconds=" + shutdownWaitInSeconds +
-                ", timeToLiveInSeconds=" + timeToLiveInSeconds +
-                ", brokerUsername=" + brokerUsername +
-                ", brokerPassword=" + brokerPassword +
-                ", pool=" + pool +
-                '}';
+            "brokerUrl='" + brokerUrl + '\'' +
+            ", healthCheckAppendToBrokerUrl=" + healthCheckAppendToBrokerUrl +
+            ", healthCheckMillisecondsToWait=" + healthCheckMillisecondsToWait +
+            ", healthCheckRequired=" + healthCheckRequired +
+            ", shutdownWaitInSeconds=" + shutdownWaitInSeconds +
+            ", timeToLiveInSeconds=" + timeToLiveInSeconds +
+            ", brokerUsername=" + brokerUsername +
+            ", brokerPassword=" + brokerPassword +
+            ", pool=" + pool +
+            '}';
     }
 }
