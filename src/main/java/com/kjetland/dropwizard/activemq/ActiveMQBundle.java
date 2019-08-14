@@ -80,6 +80,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
                 : activeMQConfig.brokerUrl;
             ActiveMQConnectionFactory healthCheckActiveMQConnectionFactory = getActiveMQConnectionFactory(healthCheckBrokerUrl, activeMQConfig.brokerUsername, activeMQConfig.brokerPassword);
             // Must use independent connectionFactory instead of (pooled) connectionFactory for the healthCheck
+            // It needs its own connection since it is both sending and receiving.
             // If using pool, then it might be blocked when pool is short on idle threads and no connection is available..
             environment.healthChecks().register(healthCheckName,
                 new ActiveMQHealthCheck(healthCheckActiveMQConnectionFactory, activeMQConfig.healthCheckMillisecondsToWait)
