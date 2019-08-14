@@ -152,11 +152,15 @@ activeMQ:
 
 activeMQ:
   brokerUrl: failover:(tcp://broker1.com:61616,tcp://broker2.com:61616)?randomize=false
+  # healthCheckAppendToBrokerUrl: &startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down. 
+    #(? or & depends on whether brokerUrl already included options))
   # brokerUsername: username
   # brokerPassword: password
   # shutdownWaitInSeconds: 20
   # healthCheckMillisecondsToWait: 2000
+  # healthCheckRequired: false (if activeMQ outage is handled well in your service and activeMQ being unavailable should NOT mark service unhealthy. Default true)
   # timeToLiveInSeconds: -1     (Default message time-to-live is off. Specify a maximum lifespan here in seconds for all messages.)
+  
   pool:
     maxConnections: 1
     maximumActiveSessionPerConnection: 3

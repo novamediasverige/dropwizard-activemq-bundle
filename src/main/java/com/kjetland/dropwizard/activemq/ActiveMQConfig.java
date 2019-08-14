@@ -11,6 +11,15 @@ public class ActiveMQConfig {
     @NotNull
     public String brokerUrl;
 
+    /**
+     * {@literal
+     *  Ex. &startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down).
+     *  ? or & depends on whether brokerUrl already included options
+     * }
+     */
+    @JsonProperty
+    public String healthCheckAppendToBrokerUrl;
+
     @JsonProperty
     public String brokerUsername;
 
@@ -20,8 +29,11 @@ public class ActiveMQConfig {
     @JsonProperty
     public long healthCheckMillisecondsToWait = 2000; // 2 seconds
 
+    /**
+     * Set to false if activeMQ outage is handled well in your service and activeMQ being unavailable should NOT mark service unhealthy.
+     */
     @JsonProperty
-    public boolean healthcheckRequired = true; //can be turned off by application using bundle
+    public boolean healthCheckRequired = true; //can be turned off by application using bundle
 
     @JsonProperty
     public int shutdownWaitInSeconds = 20;
@@ -36,13 +48,15 @@ public class ActiveMQConfig {
     @Override
     public String toString() {
         return "ActiveMQConfig{" +
-                "brokerUrl='" + brokerUrl + '\'' +
-                ", healthCheckMillisecondsToWait=" + healthCheckMillisecondsToWait +
-                ", shutdownWaitInSeconds=" + shutdownWaitInSeconds +
-                ", timeToLiveInSeconds=" + timeToLiveInSeconds +
-                ", brokerUsername=" + brokerUsername +
-                ", brokerPassword=" + brokerPassword +
-                ", pool=" + pool +
-                '}';
+            "brokerUrl='" + brokerUrl + '\'' +
+            ", healthCheckAppendToBrokerUrl=" + healthCheckAppendToBrokerUrl +
+            ", healthCheckMillisecondsToWait=" + healthCheckMillisecondsToWait +
+            ", healthCheckRequired=" + healthCheckRequired +
+            ", shutdownWaitInSeconds=" + shutdownWaitInSeconds +
+            ", timeToLiveInSeconds=" + timeToLiveInSeconds +
+            ", brokerUsername=" + brokerUsername +
+            ", brokerPassword=" + brokerPassword +
+            ", pool=" + pool +
+            '}';
     }
 }
