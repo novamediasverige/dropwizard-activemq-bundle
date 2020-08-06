@@ -2,7 +2,14 @@ package com.kjetland.dropwizard.activemq;
 
 import com.codahale.metrics.health.HealthCheck;
 
-import javax.jms.*;
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.DeliveryMode;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+import javax.jms.TemporaryQueue;
+import javax.jms.TextMessage;
 
 public class ActiveMQHealthCheck extends HealthCheck {
 
@@ -18,9 +25,10 @@ public class ActiveMQHealthCheck extends HealthCheck {
     @Override
     protected Result check() throws Exception {
 
-        Connection connection = connectionFactory.createConnection();
-        connection.start();
+        Connection connection = null;
         try {
+            connection = connectionFactory.createConnection();
+            connection.start();
             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             try {
                 TemporaryQueue tempQueue = session.createTemporaryQueue();
@@ -38,14 +46,14 @@ public class ActiveMQHealthCheck extends HealthCheck {
 
                         try {
                             // Wait for our testMessage
-                            TextMessage receivedMessage = (TextMessage)consumer.receive(millisecondsToWait);
+                            TextMessage receivedMessage = (TextMessage) consumer.receive(millisecondsToWait);
 
                             // Make sure we received the correct message
                             if (receivedMessage != null && messageText.equals(receivedMessage.getText())) {
                                 return Result.healthy();
                             } else {
                                 return Result.unhealthy("Did not receive testMessage via tempQueue in " +
-                                        millisecondsToWait + " milliseconds");
+                                    millisecondsToWait + " milliseconds");
                             }
                         } finally {
                             swallowException(() -> consumer.close());
@@ -60,7 +68,9 @@ public class ActiveMQHealthCheck extends HealthCheck {
                 swallowException(() -> session.close());
             }
         } finally {
-            swallowException(() -> connection.close());
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -71,7 +81,7 @@ public class ActiveMQHealthCheck extends HealthCheck {
     protected void swallowException(DoCleanup doCleanup) {
         try {
             doCleanup.doCleanup();
-        } catch(Exception e) {
+        } catch (Exception e) {
             // do nothing about it
         }
     }
