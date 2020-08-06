@@ -117,24 +117,17 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
-                <groupId>external.atlassian.jgitflow</groupId>
-                <artifactId>jgitflow-maven-plugin</artifactId>
-                <version>1.0-m4.3</version>
+                <groupId>com.amashchenko.maven.plugin</groupId>
+                <artifactId>gitflow-maven-plugin</artifactId>
+                <version>1.11.0</version>
                 <configuration>
-                    <noDeploy>true</noDeploy>
-                    <pushReleases>true</pushReleases>
+                    <pushRemote>true</pushRemote>
                     <keepBranch>false</keepBranch>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <useSnapshotInRelease>true</useSnapshotInRelease>
+                    <useSnapshotInHotfix>true</useSnapshotInHotfix>
+                    <commitDevelopmentVersionAtStart>true</commitDevelopmentVersionAtStart>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.jcraft</groupId>
-                        <artifactId>jsch</artifactId>
-                        <version>0.1.54</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
