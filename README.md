@@ -152,8 +152,7 @@ activeMQ:
 
 activeMQ:
   brokerUrl: failover:(tcp://broker1.com:61616,tcp://broker2.com:61616)?randomize=false
-  # healthCheckAppendToBrokerUrl: &startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down. 
-    #(? or & depends on whether brokerUrl already included options))
+  # healthCheckAppendToBrokerUrl: startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down. 
   # brokerUsername: username
   # brokerPassword: password
   # shutdownWaitInSeconds: 20

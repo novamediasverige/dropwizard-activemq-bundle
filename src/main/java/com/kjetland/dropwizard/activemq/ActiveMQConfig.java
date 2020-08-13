@@ -13,8 +13,7 @@ public class ActiveMQConfig {
 
     /**
      * {@literal
-     *  Ex. &startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down).
-     *  ? or & depends on whether brokerUrl already included options
+     *  Ex. startupMaxReconnectAttempts=1 (use if healthcheck is on. Fixes hanging behavior of healthchecks when activeMQ is down).
      * }
      */
     @JsonProperty

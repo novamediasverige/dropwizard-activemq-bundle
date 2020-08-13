@@ -16,6 +16,8 @@ import static java.lang.String.format;
 
 public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, Managed, ActiveMQSenderFactory {
 
+    private static final String QUESTION_MARK = "?";
+    private static final String AMPERSAND = "&";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private String healthCheckName = "ActiveMQ";
     private ActiveMQConnectionFactory realConnectionFactory;
@@ -65,7 +67,7 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
 
     private ActiveMQConnectionFactory getActiveMQConnectionFactory(String brokerUrl, String username, String password) {
         ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory(brokerUrl);
-        if (username!=null && password!=null) {
+        if (username != null && password != null) {
             activeMQConnectionFactory.setUserName(username);
             activeMQConnectionFactory.setPassword(password);
         }
@@ -75,9 +77,8 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
     private void registerHealthCheckIfRequired(ActiveMQConfig activeMQConfig, Environment environment) {
 
         if (activeMQConfig.healthCheckRequired) {
-            String healthCheckBrokerUrl = activeMQConfig.healthCheckAppendToBrokerUrl != null
-                ? activeMQConfig.brokerUrl + activeMQConfig.healthCheckAppendToBrokerUrl
-                : activeMQConfig.brokerUrl;
+
+            String healthCheckBrokerUrl = getHealthCheckBrokerUrl(activeMQConfig);
             ActiveMQConnectionFactory healthCheckActiveMQConnectionFactory = getActiveMQConnectionFactory(healthCheckBrokerUrl, activeMQConfig.brokerUsername, activeMQConfig.brokerPassword);
             // Must use independent connectionFactory instead of (pooled) connectionFactory for the healthCheck
             // It needs its own connection since it is both sending and receiving.
@@ -89,6 +90,25 @@ public class ActiveMQBundle implements ConfiguredBundle<ActiveMQConfigHolder>, M
             healthcheckDisabled = true;
             log.info("ActiveMQ healthcheck is disabled for the service");
         }
+    }
+
+    private String getHealthCheckBrokerUrl(ActiveMQConfig activeMQConfig) {
+        String healthCheckBrokerUrl = activeMQConfig.brokerUrl;
+
+        if (activeMQConfig.healthCheckAppendToBrokerUrl != null) {
+            activeMQConfig.healthCheckAppendToBrokerUrl = removeUrlSeparatorIfPresent(activeMQConfig.healthCheckAppendToBrokerUrl);
+
+            String separatorChar = activeMQConfig.brokerUrl.contains(QUESTION_MARK) ? AMPERSAND : QUESTION_MARK;
+            healthCheckBrokerUrl = activeMQConfig.brokerUrl + separatorChar + activeMQConfig.healthCheckAppendToBrokerUrl;
+        }
+        return healthCheckBrokerUrl;
+    }
+
+    private String removeUrlSeparatorIfPresent(String healthCheckAppendToBrokerUrl) {
+        if (healthCheckAppendToBrokerUrl.startsWith(QUESTION_MARK) || healthCheckAppendToBrokerUrl.startsWith(AMPERSAND)) {
+            return healthCheckAppendToBrokerUrl.substring(1);
+        }
+        return healthCheckAppendToBrokerUrl;
     }
 
     private void configurePool(ActiveMQPoolConfig poolConfig) {
