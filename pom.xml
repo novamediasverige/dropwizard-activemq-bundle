@@ -8,7 +8,7 @@
     </parent>
     <groupId>com.kjetland.dropwizard</groupId>
     <artifactId>dropwizard-activemq</artifactId>
-    <version>0.5.8-NOVAMEDIA-SNAPSHOT</version>
+    <version>0.5.7-NOVAMEDIA</version>
 
     <name>dropwizard-activemq</name>
     <url>https://github.com/mbknor/dropwizard-activemq-bundle</url>
