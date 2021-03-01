@@ -98,13 +98,13 @@ public class ActiveMQSenderImpl implements ActiveMQSender {
                     senderFilters.forEach(senderFilter -> senderFilter.apply(message));
                     messageProducer.send(message);
                 } finally {
-                    ActiveMQUtils.silent(() -> messageProducer.close());
+                    ActiveMQUtils.silent(messageProducer::close);
                 }
             } finally {
-                ActiveMQUtils.silent(() -> session.close());
+                ActiveMQUtils.silent(session::close);
             }
         } finally {
-            ActiveMQUtils.silent(() -> connection.close());
+            ActiveMQUtils.silent(connection::close);
         }
     }
 

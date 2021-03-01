@@ -50,8 +50,8 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
     private final ActiveMQReceiver<T> receiver;
     private final ObjectMapper objectMapper;
     private final Thread thread;
-    private AtomicBoolean shouldStop = new AtomicBoolean(false);
-    private AtomicBoolean isReceiving = new AtomicBoolean(false);
+    private final AtomicBoolean shouldStop = new AtomicBoolean(false);
+    private final AtomicBoolean isReceiving = new AtomicBoolean(false);
     private final ActiveMQBaseExceptionHandler exceptionHandler;
     protected final DestinationCreator destinationCreator = new DestinationCreatorImpl();
     protected final long shutdownWaitInSeconds;
@@ -190,7 +190,7 @@ public class ActiveMQReceiverHandler<T> implements Managed, Runnable {
 
     private T fromJson(String json) {
         try {
-            return (T)objectMapper.readValue(json, receiverType);
+            return objectMapper.readValue(json, receiverType);
         } catch (IOException e) {
             throw new JsonError(e);
         }

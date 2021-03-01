@@ -1,29 +1,35 @@
 package com.kjetland.dropwizard.activemq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.dropwizard.jackson.Jackson;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.jms.pool.PooledConnectionFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ActiveMQReceiverHandlerRedeliveryTest {
 
-    final String url = "tcp://localhost:31219?" +
+    private static final String url = "tcp://localhost:31219?" +
         "jms.redeliveryPolicy.maximumRedeliveries=3" +
         "&jms.redeliveryPolicy.initialRedeliveryDelay=100" +
         "&jms.redeliveryPolicy.redeliveryDelay=100";
 
-    BrokerService broker;
+    private static final ObjectMapper objectMapper = Jackson.newObjectMapper();
 
-    @Before
-    public void setUp() throws Exception {
+    private BrokerService broker;
+    private int errorCount;
+    private int okCount;
+
+    @BeforeEach
+    void setUp() throws Exception {
         broker = new BrokerService();
         // configure the broker
         broker.addConnector(url);
@@ -33,39 +39,20 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
         okCount = 0;
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void tearDown() throws Exception {
         broker.stop();
         // Just give the broker some time to stop
         Thread.sleep(1500);
     }
 
-    int errorCount;
-    int okCount;
-
-    private void receiveMessage(String message, Map<String, Object> messageProperties) {
-
-        if (message.equals("fail")) {
-            errorCount++;
-            throw new RuntimeException("Error in receiveMessage");
-        } else {
-            okCount++;
-            System.out.println(String.format("receiveMessage: %s. messageProperties: ", message, messageProperties));
-        }
-    }
-
-    public boolean exceptionHandler(String message, Exception exception) {
-        System.out.println("exceptionHandler: " + message + " - " + exception.getMessage());
-        return false;
-    }
-
     @Test
-    public void testRedeliveryQueue() throws Exception {
+    void testRedeliveryQueue() throws Exception {
         doTestRedelivery("queue:someQueue");
     }
 
     @Test
-    public void testRedeliveryTopic() throws Exception {
+    void testRedeliveryTopic() throws Exception {
         doTestRedelivery("topic:someTopic");
     }
 
@@ -73,8 +60,6 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
         ActiveMQConnectionFactory realConnectionFactory = new ActiveMQConnectionFactory(url);
         PooledConnectionFactory connectionFactory = new PooledConnectionFactory();
         connectionFactory.setConnectionFactory(realConnectionFactory);
-
-        ObjectMapper objectMapper = new ObjectMapper();
 
         ActiveMQReceiverHandler<String> h = new ActiveMQReceiverHandler<>(
             destinationName,
@@ -88,7 +73,7 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
 
         h.start();
 
-        ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, destinationName, Optional.<Integer>empty(), false);
+        ActiveMQSender sender = new ActiveMQSenderImpl(connectionFactory, objectMapper, destinationName, Optional.empty(), false);
 
         sender.sendJson("fail");
         sender.sendJson("ok1");
@@ -96,7 +81,24 @@ public class ActiveMQReceiverHandlerRedeliveryTest {
 
         Thread.sleep(1000);
 
-        assertEquals(3 + 1, errorCount);
-        assertEquals(2, okCount);
+        assertAll(
+            () -> assertEquals(3 + 1, errorCount),
+            () -> assertEquals(2, okCount)
+        );
+    }
+
+    private void receiveMessage(String message, Map<String, Object> messageProperties) {
+        if (message.equals("fail")) {
+            errorCount++;
+            throw new RuntimeException("Error in receiveMessage");
+        } else {
+            okCount++;
+            System.out.printf("receiveMessage: %s. messageProperties: %s", message, messageProperties);
+        }
+    }
+
+    public boolean exceptionHandler(String message, Exception exception) {
+        System.out.println("exceptionHandler: " + message + " - " + exception.getMessage());
+        return false;
     }
 }

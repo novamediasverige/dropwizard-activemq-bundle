@@ -13,11 +13,10 @@ import javax.jms.TextMessage;
 
 public class ActiveMQHealthCheck extends HealthCheck {
 
-    private ConnectionFactory connectionFactory;
-    private long millisecondsToWait;
+    private final ConnectionFactory connectionFactory;
+    private final long millisecondsToWait;
 
     public ActiveMQHealthCheck(ConnectionFactory connectionFactory, long millisecondsToWait) {
-
         this.connectionFactory = connectionFactory;
         this.millisecondsToWait = millisecondsToWait;
     }
@@ -56,16 +55,16 @@ public class ActiveMQHealthCheck extends HealthCheck {
                                     millisecondsToWait + " milliseconds");
                             }
                         } finally {
-                            swallowException(() -> consumer.close());
+                            swallowException(consumer::close);
                         }
                     } finally {
-                        swallowException(() -> producer.close());
+                        swallowException(producer::close);
                     }
                 } finally {
-                    swallowException(() -> tempQueue.delete());
+                    swallowException(tempQueue::delete);
                 }
             } finally {
-                swallowException(() -> session.close());
+                swallowException(session::close);
             }
         } finally {
             if (connection != null) {
