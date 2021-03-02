@@ -1,30 +1,33 @@
 package com.kjetland.dropwizard.activemq;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.Topic;
 
-import static org.junit.Assert.assertSame;
-import static org.mockito.Matchers.eq;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DestinationCreatorImplTest {
+
+    private static final String QUEUE_NAME = "dest-name";
+
+    private final Session session = mock(Session.class);
+    private final Queue queue = mock(Queue.class);
+    private final Topic topic = mock(Topic.class);
+
     @Test
-    public void testCreate() throws Exception {
-        String name = "dest-name";
-        Session session = mock(Session.class);
-        Queue queue = mock(Queue.class);
-        Topic topic = mock(Topic.class);
-        when(session.createQueue(eq(name))).thenReturn(queue);
-        when(session.createTopic(eq(name))).thenReturn(topic);
+    void testCreate() throws Exception {
+        when(session.createQueue(eq(QUEUE_NAME))).thenReturn(queue);
+        when(session.createTopic(eq(QUEUE_NAME))).thenReturn(topic);
 
         DestinationCreator destinationCreator = new DestinationCreatorImpl();
 
-        assertSame(topic, destinationCreator.create(session, "topic:"+name));
-        assertSame(queue, destinationCreator.create(session, "queue:" + name));
-        assertSame(queue, destinationCreator.create(session, name));
+        assertSame(topic, destinationCreator.create(session, "topic:"+ QUEUE_NAME));
+        assertSame(queue, destinationCreator.create(session, "queue:" + QUEUE_NAME));
+        assertSame(queue, destinationCreator.create(session, QUEUE_NAME));
     }
 }

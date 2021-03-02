@@ -1,11 +1,9 @@
 package com.kjetland.dropwizard.activemq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import io.dropwizard.jackson.Jackson;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -20,38 +18,38 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
 public class ActiveMQSenderImplTest {
 
-    @Mock
-    private ConnectionFactory connectionFactory;
-    @Mock
-    private Connection connection;
-    @Mock
-    private Session session;
-    @Mock
-    private Queue queue;
-    @Mock
-    private MessageProducer messageProducer;
-    @Mock
-    private ObjectMapper objectMapper;
-    @Mock
-    private TextMessage textMessage;
+    private static final ObjectMapper objectMapper = Jackson.newObjectMapper();
 
-    @Before
-    public void setUp() throws Exception {
+    private final ConnectionFactory connectionFactory = mock(ConnectionFactory.class);
+    private final Connection connection = mock(Connection.class);
+    private final Session session = mock(Session.class);
+    private final Queue queue = mock(Queue.class);
+    private final MessageProducer messageProducer = mock(MessageProducer.class);
+    private final TextMessage textMessage = mock(TextMessage.class);
+
+    @BeforeEach
+    void setUp() throws Exception {
         when(connectionFactory.createConnection()).thenReturn(connection);
         when(connection.createSession(anyBoolean(), anyInt())).thenReturn(session);
     }
 
     @Test
-    public void testSendSimpleQueueWithCreatorFunction() throws Exception {
+    void testSendSimpleQueueWithCreatorFunction() throws Exception {
         final String queueName = "myQueue";
         final String myJson = "{'a': 2, 'b': 'Some text'}";
         final String myCorrelationId = UUID.randomUUID().toString();
@@ -85,7 +83,7 @@ public class ActiveMQSenderImplTest {
     }
 
     @Test
-    public void testSendSimpleQueueWithCreatorFunctionWhenExceptionIsThrown() throws Exception {
+    void testSendSimpleQueueWithCreatorFunctionWhenExceptionIsThrown() throws Exception {
         final String queueName = "myQueue";
         final String myJson = "{'a': 2, 'b': 'Some text'}";
         final String myCorrelationId = UUID.randomUUID().toString();
@@ -119,7 +117,7 @@ public class ActiveMQSenderImplTest {
     }
 
     @Test
-    public void testFiltersAreAppliedSendFunction() throws JMSException {
+    void testFiltersAreAppliedSendFunction() throws JMSException {
         doTestSenderFilters((sender) -> sender.send((Session session) -> {
             TextMessage message = session.createTextMessage();
             message.setText("jmsfunction");
@@ -128,12 +126,12 @@ public class ActiveMQSenderImplTest {
     }
 
     @Test
-    public void testFiltersAreAppliedSendJson() throws JMSException {
+    void testFiltersAreAppliedSendJson() throws JMSException {
         doTestSenderFilters((sender) -> sender.sendJson("{\"key\": \"value\"}"));
     }
 
     @Test
-    public void testFiltersAreAppliedSendObject() throws JMSException {
+    void testFiltersAreAppliedSendObject() throws JMSException {
         doTestSenderFilters((sender) -> sender.send("object"));
     }
 
